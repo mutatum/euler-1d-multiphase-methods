@@ -186,14 +186,13 @@ def rk3_SSP(U, D, dx, dt, lambda_max):
 
     Residual = np.zeros_like(U)
     DGSEM_residual(Residual, U, D, dx, lambda_max, w)
-    # U_1 = U + dt * Residual
+    U_1 = U + dt * Residual
     
-    # DGSEM_residual(Residual, U_1, D, dx, lambda_max, w)
-    # U_2 = 0.75 * U + 0.25 * (U_1 + dt * Residual)
+    DGSEM_residual(Residual, U_1, D, dx, lambda_max, w)
+    U_2 = 0.75 * U + 0.25 * (U_1 + dt * Residual)
     
-    # DGSEM_residual(Residual, U_2, D, dx, lambda_max, w)
-    # return (1.0 / 3.0) * U + (2.0 / 3.0) * (U_2 + dt * Residual)
-    return U + dt*Residual
+    DGSEM_residual(Residual, U_2, D, dx, lambda_max, w)
+    return (1.0 / 3.0) * U + (2.0 / 3.0) * (U_2 + dt * Residual)
 
 # %%
 def init_sod(U_cells, cell_centers, dx):
@@ -281,6 +280,6 @@ def main(N=100, p=2, T=0.2, cfl=0.5, test_case='sod'):
         plt.show()
 
 if __name__ == '__main__':
-    main(N=30, T=0.45, p=3, cfl=.2, test_case='sod')
+    main(N=100, T=0.025, p=2, cfl=.2, test_case='sod')
 
 # %%
