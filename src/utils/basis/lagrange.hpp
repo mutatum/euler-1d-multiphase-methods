@@ -29,6 +29,7 @@ struct Lagrange
             }
             result += product;
         }
+        return result;
     }
 
 
