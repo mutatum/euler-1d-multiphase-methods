@@ -18,27 +18,24 @@ struct EulerState {
     }
 };
 
-template<typename Scalar>
-class IdealGasEOS {
+template<typename Scalar, Scalar gamma>
+struct IdealGasEOS {
 private:
-    Scalar gamma_;
+    static constexpr Scalar gamma_ = gamma;
 public:
-    explicit IdealGasEOS(Scalar gamma = 1.4): gamma_(gamma) {}
-
-    inline Scalar pressure(EulerState<Scalar>& U) const {
+    static Scalar pressure(EulerState<Scalar>& U) {
         return (gamma_ - 1.0) * (U.total_energy - 0.5 * U.momentum * U.momentum / U.density);
     }
 
-    inline Scalar sound_speed(EulerState<Scalar>& U) const {
+    static Scalar sound_speed(EulerState<Scalar>& U) {
         return std::sqrt(gamma_ * pressure(U) / U.density);
     }
 
-    inline Scalar sound_speed(Scalar _pressure, Scalar density) const {
+    static Scalar sound_speed(Scalar _pressure, Scalar density) {
         return std::sqrt(gamma_ * _pressure / density);
     }
     
-    inline void set_gamma(Scalar gamma) { gamma_ = gamma; }
-    inline Scalar get_gamma() const { return gamma_; }
+    static Scalar get_gamma() { return gamma_; }
 };
 
 
