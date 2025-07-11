@@ -3,12 +3,17 @@
 #include <stdexcept>
 #include <vector>
 
+template<class SchemePolicy>
+struct Element {
+
+};
+
 template <typename State>
 class Field
 {
 
 private:
-    std::vector<State> data_;
+    std::vector<Element> data_;
     const Mesh &mesh_;
 
 public:

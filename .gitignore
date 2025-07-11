@@ -1,5 +1,7 @@
-./eigen
-drafting/boost_1_88_0
-/eigen/
-eigen/
 .vscode/
+./external
+/external
+external
+/build
+./build
+build

@@ -14,22 +14,22 @@ def newton_raphson(x0, f, df, eps):
             break
     return x
     
-def rho0(X):
-    return 1 + 0.9999999 * np.sin(np.pi*X)
+def rho0(X, factor=0.1):
+    return 1 + factor * np.sin(np.pi*X)
 
-def sol(x, t):
-    fp = lambda X, x=x, t=t: X + np.sqrt(3) * t * (1+0.9999999*np.sin(np.pi*X)) - x
-    dfp = lambda X, x=x ,t=t: 1 + np.sqrt(3) * t * np.pi*0.9999999*np.cos(np.pi*X)
-    fm = lambda X, x=x, t=t: X - np.sqrt(3) * t * (1+0.9999999*np.sin(np.pi*X)) - x
-    dfm = lambda X, x=x ,t=t: 1 - np.sqrt(3) * t * np.pi*0.9999999*np.cos(np.pi*X)
+def sol(x, t, factor=0.1):
+    fp = lambda X, x=x, t=t: X + np.sqrt(3) * t * (1+factor*np.sin(np.pi*X)) - x
+    dfp = lambda X, x=x ,t=t: 1 + np.sqrt(3) * t * np.pi*factor*np.cos(np.pi*X)
+    fm = lambda X, x=x, t=t: X - np.sqrt(3) * t * (1+factor*np.sin(np.pi*X)) - x
+    dfm = lambda X, x=x ,t=t: 1 - np.sqrt(3) * t * np.pi*factor*np.cos(np.pi*X)
     Xp = newton_raphson(x, fp, dfp, np.finfo(float).eps)
     Xp = Xp - 2 * np.floor((Xp + 1) / 2)
     Xm = newton_raphson(x, fm, dfm, np.finfo(float).eps)
     Xm = Xm - 2 * np.floor((Xm + 1) / 2)
 
     # print("Xp: ", Xp, "Xm: ", Xm)
-    wp = np.sqrt(3) * (1+0.9999999*np.sin(np.pi*Xp))
-    wm = -np.sqrt(3) * (1+0.9999999*np.sin(np.pi*Xm))
+    wp = np.sqrt(3) * (1+factor*np.sin(np.pi*Xp))
+    wm = -np.sqrt(3) * (1+factor*np.sin(np.pi*Xm))
 
     u = (wp+wm)*0.5
     rho = (wp-wm)/(2*np.sqrt(3))

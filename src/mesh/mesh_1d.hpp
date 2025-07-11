@@ -35,27 +35,17 @@ public:
         {
             throw std::invalid_argument("Invalid domain: x_min must be less than x_max.");
         }
-        if (n_cells_total_ > 0)
+        for (std::size_t i = 0; i < n_cells_real_ + n_ghost ; ++i)
         {
-            for (std::size_t i = 0; i < n_cells_total_; ++i)
-            {
-                cell_centers_.at(i) = x_min_ + (i - n_ghost + 0.5) * dx_;
-            }
+            cell_centers_.at(i) = x_min_ + (i - n_ghost + 0.5) * dx_;
         }
     }
 
-    std::size_t num_cells() const { return n_cells_real_; };
-    std::size_t num_ghost_cells() const { return n_ghost_; };
-    std::size_t total_cells() const { return n_cells_total_; }
-    double domain_start() const { return x_min_; }
-    double domain_end() const { return x_max_; }
-    double dx() const { return dx_; };
-    double cell_center(std::size_t i) const
-    {
-        if (i >= n_cells_total_)
-        {
-            throw std::out_of_range("Index out of range.");
-        }
-        return cell_centers_.at(i);
-    };
+    inline std::size_t num_cells() const { return n_cells_real_; };
+    inline std::size_t num_ghost_cells() const { return n_ghost_; };
+    inline std::size_t total_cells() const { return n_cells_total_; }
+    inline double domain_start() const { return x_min_; }
+    inline double domain_end() const { return x_max_; }
+    inline double dx() const { return dx_; };
+    inline double cell_center(std::size_t i) const { return cell_centers_.at(i); };
 };
