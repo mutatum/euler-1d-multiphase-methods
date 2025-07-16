@@ -103,106 +103,73 @@ def physical_flux(U,gamma):
         (E + p) * u, # (rho*E + p) * u
     ])
 
-def rusanov(Ul,Ur,lambda_max,gamma):
-    return 0.5 * (physical_flux(Ul,gamma)+physical_flux(Ur,gamma)) - 0.5 * lambda_max * (Ur-Ul)
-
-def compute_max_speed(U, gamma, boundary):
-    cells = U.shape[1]
-    lambda_max = 1e-6
-
-    # Internal interfaces
-    for i in range(cells - 1):
-        UL = U[:,i,-1]
-        UR = U[:,i+1,0]
-        rhoR = UR[0]
-        rhoL = UL[0]
-        uR = UR[1]/rhoR
-        uL = UL[1]/rhoL
-        ER = UR[2]
-        EL = UL[2]
-        eR = ER/rhoR - .5*uR**2.
-        eL = EL/rhoL - .5*uL**2.
-        pR = eq_of_state(gamma, rhoR, eR)
-        pL = eq_of_state(gamma, rhoL, eL)
-        # if pR < 0 or pL < 0 or rhoL <= 0 or rhoR <= 0:
-        #     print(f"pR,pL,rhoR, rhoL: {pR,pL,rhoR, rhoL}")
-        #     exit()
-        cR = np.sqrt(gamma*pR / rhoR)
-        cL = np.sqrt(gamma*pL / rhoL)
-        lambda_max = max(lambda_max, abs(uL)+cL, abs(uR)+cR)
-
-    # Boundary interfaces
-    # Left boundary
-    UL_b, UR_b = None, U[:, 0, 0]
-    if boundary[0] == 'reflecting':
-        UL_b = U[:, 0, 0].copy()
-        UL_b[1] *= -1 
-    elif boundary[0] == 'periodic':
-        UL_b = U[:, -1, -1]
+def rusanov(Ul, Ur, gamma):
+    """Rusanov flux that computes and returns local maximum speed"""
+    # Compute local maximum speed
+    rhoR = Ur[0]
+    rhoL = Ul[0]
+    uR = Ur[1]/rhoR
+    uL = Ul[1]/rhoL
+    ER = Ur[2]
+    EL = Ul[2]
+    eR = ER/rhoR - .5*uR**2.
+    eL = EL/rhoL - .5*uL**2.
+    pR = eq_of_state(gamma, rhoR, eR)
+    pL = eq_of_state(gamma, rhoL, eL)
+    cR = np.sqrt(gamma*pR / rhoR)
+    cL = np.sqrt(gamma*pL / rhoL)
+    lambda_local = max(abs(uL)+cL, abs(uR)+cR)
     
-    # Right boundary
-    UL_r, UR_r = U[:, -1, -1], None
-    if boundary[1] == 'reflecting':
-        UR_r = U[:, -1, -1].copy()
-        UR_r[1] *= -1
-    elif boundary[1] == 'periodic':
-        UR_r = U[:, 0, 0]
+    # Compute Rusanov flux
+    flux = 0.5 * (physical_flux(Ul, gamma) + physical_flux(Ur, gamma)) - 0.5 * lambda_local * (Ur - Ul)
+    
+    return flux, lambda_local
 
-    for U_pair in [(UL_b, UR_b), (UL_r, UR_r)]:
-        if U_pair[0] is not None and U_pair[1] is not None:
-            UL, UR = U_pair
-            rhoR = UR[0]
-            rhoL = UL[0]
-            uR = UR[1]/rhoR
-            uL = UL[1]/rhoL
-            ER = UR[2]
-            EL = UL[2]
-            eR = ER/rhoR - .5*uR**2.
-            eL = EL/rhoL - .5*uL**2.
-            pR = eq_of_state(gamma, rhoR, eR)
-            pL = eq_of_state(gamma, rhoL, eL)
-            cR = np.sqrt(gamma*pR / rhoR)
-            cL = np.sqrt(gamma*pL / rhoL)
-            lambda_max = max(lambda_max, abs(uL)+cL, abs(uR)+cR)
-            
-    return lambda_max
-
-def compute_fluxes(U_cells,lambda_max,gamma,boundary):
-    #njit unusable:
-    #U_borders = np.pad(U[:,:,[0,-1]].flatten(),pad_width=1,mode='wrap') # getting border value for each cell
-    n_fluxes = U_cells.shape[1]+1
-    fluxes = np.zeros((3,n_fluxes))
-    n_cells = U_cells.shape[1]
+def compute_fluxes(U_cells, gamma, boundary):
+    """Compute fluxes and return global maximum speed"""
+    n_fluxes = U_cells.shape[1] + 1
+    fluxes = np.zeros((3, n_fluxes))
+    lambda_max = 1e-6
     
     # Left boundary
     UR_b = U_cells[:, 0, 0]
     if boundary[0] == 'reflecting':
-        UL_b = U_cells[:, 0, 0].copy()  # Using copy to prevent modifying original
+        UL_b = U_cells[:, 0, 0].copy()
         UL_b[1] *= -1
     elif boundary[0] == 'periodic':
         UL_b = U_cells[:, -1, -1]
     else:
         raise ValueError(f"Unknown left boundary condition: {boundary[0]}")
-    fluxes[:, 0] = rusanov(UL_b, UR_b, lambda_max, gamma)
+    
+    fluxes[:, 0], lambda_local = rusanov(UL_b, UR_b, gamma)
+    lambda_max = max(lambda_max, lambda_local)
 
     # Internal fluxes
     for i in range(1, n_fluxes - 1):
-        UL = U_cells[:,i-1,-1]
-        UR = U_cells[:,i,0]
-        fluxes[:, i] = rusanov(UL, UR, lambda_max,gamma)
+        UL = U_cells[:, i-1, -1]
+        UR = U_cells[:, i, 0]
+        fluxes[:, i], lambda_local = rusanov(UL, UR, gamma)
+        lambda_max = max(lambda_max, lambda_local)
 
     # Right boundary
     UL_b = U_cells[:, -1, -1]
     if boundary[1] == 'reflecting':
-        UR_b = U_cells[:, -1, -1].copy()  # Using copy to prevent modifying original
+        UR_b = U_cells[:, -1, -1].copy()
         UR_b[1] *= -1
     elif boundary[1] == 'periodic':
         UR_b = U_cells[:, 0, 0]
     else:
         raise ValueError(f"Unknown right boundary condition: {boundary[1]}")
-    fluxes[:, -1] = rusanov(UL_b, UR_b, lambda_max, gamma)
     
-    return fluxes
+    fluxes[:, -1], lambda_local = rusanov(UL_b, UR_b, gamma)
+    lambda_max = max(lambda_max, lambda_local)
+    
+    return fluxes, lambda_max
+
+def compute_max_speed(U_cells, gamma, boundary):
+    """Compute maximum speed by using flux computation"""
+    _, lambda_max = compute_fluxes(U_cells, gamma, boundary)
+    return lambda_max
 
 def compute_differentiation_matrix(p): # Need to understand why c_i more
     if p == 0:
@@ -216,9 +183,9 @@ def compute_differentiation_matrix(p): # Need to understand why c_i more
             D[j,l] = lagrange_derivative(xi[j], xi, l)
     return D
 
-def DGSEM_residual(Residual, U_cells, D, dx, max_speed, w,gamma, boundary): # Rhs in dU/dt = Rhs(U)
+def DGSEM_residual(Residual, U_cells, D, dx, w,gamma, boundary): # Rhs in dU/dt = Rhs(U)
     p = U_cells.shape[2] - 1
-    fluxes = compute_fluxes(U_cells, max_speed, gamma,boundary)
+    fluxes, max_speed = compute_fluxes(U_cells, gamma,boundary)
     for c in range(U_cells.shape[1]): # cells
         F_nodes = np.zeros((3,p+1))
         for node in range(p+1):
@@ -230,49 +197,51 @@ def DGSEM_residual(Residual, U_cells, D, dx, max_speed, w,gamma, boundary): # Rh
         F_right = physical_flux(U_cells[:, c, -1], gamma)
         Residual[:, c, 0] -= (2.0 / (dx * w[0])) * (F_left - fluxes[:, c])
         Residual[:, c, -1] += (2.0 / (dx * w[-1])) * (F_right - fluxes[:, c+1])
+    return max_speed
 
-def rk_SSP(U, D, k, dx, dt, lambda_max, gamma, boundary):
+def rk_SSP(U, D, k, dx, max_dt, pre_dt, gamma, boundary):
     p = U.shape[2] - 1
     xi = np.array(GLL_quadrature[p][0], dtype=np.float64)
     w  = np.array(GLL_quadrature[p][1], dtype=np.float64)
 
     Residual = np.zeros_like(U)
-    DGSEM_residual(Residual, U, D, dx, lambda_max, w, gamma, boundary)
+    max_speed = DGSEM_residual(Residual, U, D, dx, w, gamma, boundary)
+    dt = min(max_dt, pre_dt / max_speed)
     if k == 1:
         U_1 = U + Residual * dt
-        return U_1
+        return U_1, dt
     elif k == 2:
         U_1 = U + Residual * dt
-        DGSEM_residual(Residual, U_1, D, dx, lambda_max, w, gamma, boundary)
-        return (1.0 / 2.0) * U + (1.0 / 2.0) * (U_1 + dt * Residual)
+        DGSEM_residual(Residual, U_1, D, dx, w, gamma, boundary)
+        return (1.0 / 2.0) * U + (1.0 / 2.0) * (U_1 + dt * Residual), dt
     elif k == 3 or k==4 or k==5:
         U_1 = U + Residual * dt
-        DGSEM_residual(Residual, U_1, D, dx, lambda_max, w, gamma, boundary)
+        DGSEM_residual(Residual, U_1, D, dx, w, gamma, boundary)
         U_2 = 0.75 * U + 0.25 * (U_1 + dt * Residual)
-        DGSEM_residual(Residual, U_2, D, dx, lambda_max, w, gamma, boundary)
-        return (1.0 / 3.0) * U + (2.0 / 3.0) * (U_2 + dt * Residual)
+        DGSEM_residual(Residual, U_2, D, dx, w, gamma, boundary)
+        return (1.0 / 3.0) * U + (2.0 / 3.0) * (U_2 + dt * Residual), dt
     elif k == 4:
         U_1 = U + .25 * dt * Residual
-        DGSEM_residual(Residual, U_1, D, dx, lambda_max, w, gamma, boundary)
+        DGSEM_residual(Residual, U_1, D, dx, w, gamma, boundary)
         U_2 = U_1 + .25 * dt * Residual
-        DGSEM_residual(Residual, U_2, D, dx, lambda_max, w, gamma, boundary)
+        DGSEM_residual(Residual, U_2, D, dx, w, gamma, boundary)
         U_3 = U_2 + .25 * dt * Residual
-        DGSEM_residual(Residual, U_3, D, dx, lambda_max, w, gamma, boundary)
+        DGSEM_residual(Residual, U_3, D, dx, w, gamma, boundary)
         U_4 = (1.0/3.0) * U + (2.0/3.0) * (U_3 + 0.25 * dt * Residual)
-        DGSEM_residual(Residual, U_3, D, dx, lambda_max, w, gamma, boundary)
-        return 0.5 * U + 0.5 * (U_4 + .25 * dt * Residual)
+        DGSEM_residual(Residual, U_4, D, dx, w, gamma, boundary)
+        return 0.5 * U + 0.5 * (U_4 + .25 * dt * Residual), dt
     elif k == 5:
         U_1 = U + .2 * dt * Residual
-        DGSEM_residual(Residual, U_1, D, dx, lambda_max, w, gamma, boundary)
+        DGSEM_residual(Residual, U_1, D, dx, w, gamma, boundary)
         U_2 = U_1 + .2 * dt * Residual
-        DGSEM_residual(Residual, U_2, D, dx, lambda_max, w, gamma, boundary)
+        DGSEM_residual(Residual, U_2, D, dx, w, gamma, boundary)
         U_3 = U_2 + .2 * dt * Residual
-        DGSEM_residual(Residual, U_3, D, dx, lambda_max, w, gamma, boundary)
+        DGSEM_residual(Residual, U_3, D, dx, w, gamma, boundary)
         U_4 = U_3 + .2 * dt * Residual
-        DGSEM_residual(Residual, U_4, D, dx, lambda_max, w, gamma, boundary)
+        DGSEM_residual(Residual, U_4, D, dx, w, gamma, boundary)
         U_5 = .25 * U + .75 * (U_4 + 0.2 * dt * Residual)
-        DGSEM_residual(Residual, U_5, D, dx, lambda_max, w, gamma, boundary)
-        return 0.2 * U + 0.8 * (U_5 + .2 * dt * Residual)
+        DGSEM_residual(Residual, U_5, D, dx, w, gamma, boundary)
+        return 0.2 * U + 0.8 * (U_5 + .2 * dt * Residual), dt
     else:
         raise ValueError(f"Rk for precision {k} is not implemented")
 
@@ -345,16 +314,12 @@ def run_simulation(N=100, p=2, T=0.2, cfl=0.5, test_case='sod', verbose=False):
     t=0.0
 
     while t < T:
-        lambda_max = compute_max_speed(U_cells, gamma, boundary)
-        dt = cfl * dx / ((2*p+1)*lambda_max)
-        if t + dt > T:
-            dt = T - t
-        
         if p<5:
             time_precision = p+1
         else:
             time_precision = 5
-        U_cells = rk_SSP(U_cells, D, time_precision, dx, dt, lambda_max, gamma, boundary)
+        pre_dt = cfl * dx / (2*p+1)
+        U_cells, dt = rk_SSP(U_cells, D, time_precision, dx, T-t, pre_dt, gamma, boundary)
         t += dt
         if verbose:
             print(f"t = {t:.4f}/{T}, dt = {dt:.4e}")
@@ -530,14 +495,14 @@ def main(N=100, p=2, T=0.2, cfl=0.5, test_case='sod', solution=None, run_converg
                 plot_comparison_with_exact(U_cells, x_plot, gamma, T, solution)
 
 if __name__ == '__main__':
-    from temp_garbage.isentropic_solution import sol
+    from isentropic_solution import sol
     
     # Run a single simulation with comparison to exact solution
-    # main(N=3, T=0.8, p=6, cfl=0.2, test_case='isentropic', solution=sol, verbose=False)
+    # main(N=10, T=0.9, p=6, cfl=0.2, test_case='isentropic', solution=sol, verbose=False)
     
     # Run convergence analysis
-    # main(p=4, T=0.1, cfl=1.0, test_case='isentropic', solution=sol, run_convergence=True)
+    # main(p=2, T=0.7, cfl=0.2, test_case='isentropic', solution=sol, run_convergence=True)
     
     # Uncomment to run Sod shock tube test
-    main(N=30, T=0.13, p=2, cfl=0.15, test_case='sod', verbose = True)
+    main(N=2000, T=0.13, p=0, cfl=0.15, test_case='sod', verbose = False)
 # %%
