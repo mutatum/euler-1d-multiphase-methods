@@ -1,29 +1,57 @@
 #pragma once
-#include "time_integrator.hpp"
+#include "../field/field.hpp"
+#include <stdexcept>
+#include <type_traits>
 
-template <typename State>
-class RungeKutta4: public TimeIntegrator<State>
+template <class SchemePolicy>
+class Field;
+
+template <typename Scheme>
+class RungeKutta4
 {
+private:
+    Field<Scheme> k1_, k2_, k3_, k4_;
+    Field<Scheme> R_;
+    Field<Scheme> U_temp_;
+
 public:
-    void step(Field<State> &Un,
-              double dt,
-              const FluxModel<State> &flux_model,
-              const NumericalScheme<State> &numerical_scheme) override
+    using State = typename Scheme::State;
+    using Scalar = typename Scheme::Scalar;
+    using Workspace = typename Scheme::Workspace;
+    
+    static_assert(std::is_floating_point_v<Scalar>, "Scalar must be a floating-point type");
+    
+    explicit RungeKutta4(std::size_t num_cells) 
+        : k1_(num_cells), k2_(num_cells), k3_(num_cells), k4_(num_cells),
+          R_(num_cells), U_temp_(num_cells) 
     {
-        Field<State> k_1;
-        Field<State> k_2;
-        Field<State> k_3;
-        Field<State> k_4;
-        Field<State> R;
+        if (num_cells == 0) {
+            throw std::invalid_argument("Number of cells must be positive");
+        }
+    }
+    
+    void step(Field<Scheme>& Un, Workspace& workspace, Scalar dt, const Scheme& scheme)
+    {
+        if (dt <= 0) {
+            throw std::invalid_argument("Time step must be positive");
+        }
+        
+        // k1 = f(Un)
+        scheme.compute_residual(Un, k1_, workspace);
 
-        k_1 = numerical_scheme.compute_residual(Un, flux_model, R);
-        k_2 = numerical_scheme.compute_residual(Un+.5*dt*k_1, flux_model, R);
-        k_3 = numerical_scheme.compute_residual(Un+.5*dt*k_2, flux_model, R);
-        k_4 = numerical_scheme.compute_residual(Un+dt*k_3, flux_model, R);
+        // k2 = f(Un + dt/2 * k1)
+        U_temp_ = Un + (dt * static_cast<Scalar>(0.5)) * k1_;
+        scheme.compute_residual(U_temp_, k2_, workspace);
 
-        Un += (dt/6)*(k_1+2*k_2+2*k_3+k_4);
-        //! This updates ghosts cells which is unnecessary
-        //! however the cost for now is marginal.. (relative to complexity of changing it)
-        //! as we are not in 2d or 3d
+        // k3 = f(Un + dt/2 * k2)
+        U_temp_ = Un + (dt * static_cast<Scalar>(0.5)) * k2_;
+        scheme.compute_residual(U_temp_, k3_, workspace);
+        
+        // k4 = f(Un + dt * k3)
+        U_temp_ = Un + dt * k3_;
+        scheme.compute_residual(U_temp_, k4_, workspace);
+        
+        // Un+1 = Un + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
+        Un += (dt / static_cast<Scalar>(6.0)) * (k1_ + static_cast<Scalar>(2.0) * k2_ + static_cast<Scalar>(2.0) * k3_ + k4_);
     }
 };
