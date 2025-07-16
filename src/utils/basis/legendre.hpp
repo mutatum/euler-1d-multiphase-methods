@@ -1,26 +1,35 @@
 #pragma once
 #include <cstddef>
+#include <type_traits>
+#include <cmath>
 
 template <typename Scalar, std::size_t MaxOrder>
 struct Legendre
 {
-    static constexpr std::size_t max_order = MaxOrder;
+    static constexpr std::size_t order = MaxOrder;
+    static_assert(std::is_floating_point_v<Scalar>, "Scalar must be a floating-point type");
 
-    static constexpr Scalar evaluate(std::size_t n, Scalar x)
+    template<std::size_t N>
+    [[nodiscard]] static constexpr Scalar evaluate(Scalar x) noexcept
     {
+        if constexpr (N == 0) return static_cast<Scalar>(1.0);
+        if constexpr (N == 1) return x;
+        return evaluate<N-1>(x) * x - static_cast<Scalar>(N-1) * evaluate<N-2>(x) / static_cast<Scalar>(N);
+    }
 
-        if (n == 0)
-            return 1.0;
-        if (n == 1)
-            return x;
+    [[nodiscard]] static Scalar evaluate(std::size_t n, Scalar x) noexcept
+    {
+        if (n == 0) return static_cast<Scalar>(1.0);
+        if (n == 1) return x;
 
-        Scalar pm2 = 1.0;
+        Scalar pm2 = static_cast<Scalar>(1.0);
         Scalar pm1 = x;
-        Scalar p = 0.0;
+        Scalar p = static_cast<Scalar>(0.0);
 
         for (std::size_t k = 1; k < n; ++k)
         {
-            p = ((2.0 * k + 1.0) * x * pm1 - k * pm2) / (k + 1.0);
+            const Scalar k_scalar = static_cast<Scalar>(k);
+            p = ((static_cast<Scalar>(2.0) * k_scalar + static_cast<Scalar>(1.0)) * x * pm1 - k_scalar * pm2) / (k_scalar + static_cast<Scalar>(1.0));
             pm2 = pm1;
             pm1 = p;
         }
@@ -28,20 +37,21 @@ struct Legendre
         return p;
     }
 
-    static constexpr Scalar derivative(std::size_t n, Scalar x)
+    [[nodiscard]] static constexpr Scalar derivative(std::size_t n, Scalar x) noexcept
     {
-        if (n == 0)
-            return 0.0;
+        if (n == 0) return static_cast<Scalar>(0.0);
 
-        constexpr Scalar tolerance = 1e-12;
-        if (x >= 1.0 - tolerance)
-            return n * (n + 1.0) / 2.0;
-        if (x <= -1.0 + tolerance)
+        constexpr Scalar tolerance = static_cast<Scalar>(1e-12);
+        const Scalar n_scalar = static_cast<Scalar>(n);
+        
+        if (x >= static_cast<Scalar>(1.0) - tolerance)
+            return n_scalar * (n_scalar + static_cast<Scalar>(1.0)) / static_cast<Scalar>(2.0);
+        if (x <= static_cast<Scalar>(-1.0) + tolerance)
         {
-            const Scalar sign = (n % 2 == 0) ? -1.0 : 1.0;
-            return sign * n * (n + 1.0) / 2.0;
+            const Scalar sign = (n % 2 == 0) ? static_cast<Scalar>(-1.0) : static_cast<Scalar>(1.0);
+            return sign * n_scalar * (n_scalar + static_cast<Scalar>(1.0)) / static_cast<Scalar>(2.0);
         }
 
-        return n * (x * evaluate(n, x) - evaluate(n - 1, x)) / (x * x - 1.0);
+        return n_scalar * (x * evaluate(n, x) - evaluate(n - 1, x)) / (x * x - static_cast<Scalar>(1.0));
     }
 };
