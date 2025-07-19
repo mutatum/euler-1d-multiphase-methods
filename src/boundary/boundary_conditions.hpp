@@ -55,3 +55,24 @@ struct SolidWallBC
             adjacent_state.total_energy};
     }
 };
+
+namespace BoundaryConditions
+{
+    template <class Scheme>
+    using LeftPeriodicBC = PeriodicBC<Side::Left>;
+
+    template <class Scheme>
+    using RightPeriodicBC = PeriodicBC<Side::Right>;
+
+    template <class Scheme>
+    using LeftCopyBC = CopyBC<Side::Left>;
+
+    template <class Scheme>
+    using RightCopyBC = CopyBC<Side::Right>;
+
+    template <class Scheme>
+    using LeftSolidWallBC = SolidWallBC<Side::Left>;
+
+    template <class Scheme>
+    using RightSolidWallBC = SolidWallBC<Side::Right>;
+};
