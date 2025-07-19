@@ -11,9 +11,9 @@ struct PeriodicBC
     static typename Scheme::State evaluate(const Field<Scheme>& U)
     {
         if constexpr (side == Side::Left)
-            return Scheme::evaluate_poly(U(U.size() - 1), static_cast<typename Scheme::Scalar>(1.0));
+            return Scheme::evaluate_element(U(U.size() - 1), static_cast<typename Scheme::Scalar>(1.0));
         else
-            return Scheme::evaluate_poly(U(0), static_cast<typename Scheme::Scalar>(-1.0));
+            return Scheme::evaluate_element(U(0), static_cast<typename Scheme::Scalar>(-1.0));
     }
 };
 
