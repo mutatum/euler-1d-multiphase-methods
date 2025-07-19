@@ -1,14 +1,15 @@
 #pragma once
-#include "../mesh/mesh.hpp"
 #include <stdexcept>
 #include <vector>
 #include <algorithm>
 #include <type_traits>
+#include <cassert>
 
 template <typename SchemePolicy>
 class Field
 {
 public:
+    using Scheme = SchemePolicy;
     using Element = typename SchemePolicy::Element;
     using Scalar = typename SchemePolicy::Scalar;
 
@@ -16,9 +17,13 @@ private:
     std::vector<Element> data_;
 
 public:
-    explicit Field(std::size_t num_elements) : data_(num_elements) {}
+    Scalar dx;
+    Scalar domain_start;
+    Scalar domain_end;
     
-    explicit Field(std::vector<Element> data) : data_(std::move(data)) {}
+    explicit Field(std::size_t num_elements, Scalar start=-1.0, Scalar end=1.0) : data_(num_elements), domain_start(start), domain_end(end), dx((end-start)/num_elements) {}
+
+    explicit Field(std::vector<Element> data, Scalar start=-1.0, Scalar end=1.0) : data_(std::move(data)), domain_start(start), domain_end(end), dx((end-start)/data.size()) {}
 
     std::size_t size() const { return data_.size(); }
     const Element& operator()(std::size_t i) const { return data_[i]; }
@@ -70,15 +75,25 @@ public:
         return result;
     }
 
-    // Range-based iteration support
     auto begin() { return data_.begin(); }
     auto end() { return data_.end(); }
     auto begin() const { return data_.begin(); }
     auto end() const { return data_.end(); }
     
-    // Const element access with bounds checking
     const Element& at(std::size_t i) const { return data_.at(i); }
     Element& at(std::size_t i) { return data_.at(i); }
+
+    Eigen::Vector<Scalar, Scheme::Variables> evaluate(Scalar x) const {
+        // assert(x<=domain_end && x>=domain_start);
+        const Scalar cell_pos = (x - domain_start)/dx;
+        const std::size_t cell_index = cell_pos;
+        const Scalar xi = (cell_pos-static_cast<Scalar>(cell_index))*static_cast<Scalar>(2.0) - static_cast<Scalar>(1.0);
+        const auto state = Scheme::evaluate_element(data_[cell_index], xi);
+        Eigen::Vector<Scalar, Scheme::Variables> result;
+        result << state.density, state.momentum, state.total_energy;
+        return result;
+    }
+
 };
 
 template <typename SchemePolicy>
