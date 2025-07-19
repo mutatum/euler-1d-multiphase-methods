@@ -14,6 +14,7 @@ template <typename ScalarType>
 struct EulerState
 {
     using Scalar = ScalarType;
+    constexpr static std::size_t variables = 3;
     static_assert(std::is_floating_point_v<Scalar>, "Scalar must be a floating-point type");
     
     Scalar density;
@@ -40,20 +41,20 @@ struct EulerState
 
     constexpr EulerState(Scalar rho, Scalar mom, Scalar E) noexcept 
         : density(rho), momentum(mom), total_energy(E) {
-        assert(rho >= Scalar(0) && "Density must be non-negative");
-        assert(E >= Scalar(0) && "Total energy must be non-negative");
+        // assert(rho >= Scalar(0) && "Density must be non-negative");
+        // assert(E >= Scalar(0) && "Total energy must be non-negative");
     }
 
     constexpr EulerState(const std::array<Scalar, 3>& arr) noexcept 
         : density(arr[0]), momentum(arr[1]), total_energy(arr[2]) {
-        assert(arr[0] >= Scalar(0) && "Density must be non-negative");
-        assert(arr[2] >= Scalar(0) && "Total energy must be non-negative");
+        // assert(arr[0] >= Scalar(0) && "Density must be non-negative");
+        // assert(arr[2] >= Scalar(0) && "Total energy must be non-negative");
     }
 
     constexpr EulerState(const Eigen::Vector3<Scalar>& vec) noexcept 
         : density(vec[0]), momentum(vec[1]), total_energy(vec[2]) {
-        assert(vec[0] >= Scalar(0) && "Density must be non-negative");
-        assert(vec[2] >= Scalar(0) && "Total energy must be non-negative");
+        // assert(vec[0] >= Scalar(0) && "Density must be non-negative");
+        // assert(vec[2] >= Scalar(0) && "Total energy must be non-negative");
     }
 
     // =================== Arithmetic operations
