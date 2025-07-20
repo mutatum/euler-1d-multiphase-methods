@@ -5,14 +5,16 @@
 #include <algorithm>
 #include <type_traits>
 #include <iostream>
+#include <omp.h>
+#define EIGEN_USE_THREADS
 
 template <class SchemePolicy>
 class Field;
 
 template <class PhysicsModel,
           class NumericalFlux,
-          class PolynomialBasis,
-          class Quadrature,
+          class PolynomialBasisClass,
+          class QuadratureClass,
           template <class> class LeftBC,
           template <class> class RightBC>
 class DG
@@ -21,12 +23,25 @@ public:
     using Physics = PhysicsModel;
     using State = typename PhysicsModel::State;
     using Scalar = typename State::Scalar;
+    using PolynomialBasis = PolynomialBasisClass;
+    using Quadrature = QuadratureClass;
     static constexpr std::size_t Variables = PhysicsModel::variables;
     static constexpr std::size_t PolynomialOrder = PolynomialBasis::order;
 
     struct Element
     {
         Eigen::Matrix<Scalar, PolynomialOrder + 1, Variables> coeffs;
+        
+        // Eigen::Vector<Scalar, Variables> evaluate(const Scalar xi) {
+        //     assert(xi>=-1.0 && xi<=1.0);
+        //     Eigen::Vector<Scalar, Variables> result;
+        //     result.setZero();
+        //     for (std::size_t j = 0; j <= PolynomialOrder; ++j)
+        //     {
+        //         result += element.coeffs.row(j) * PolynomialBasis::evaluate(j, xi);
+        //     }
+        //     return result;
+        // }
     };
 
     struct Workspace
@@ -42,6 +57,8 @@ public:
                                                     ULs(num_cells + 1),
                                                     URs(num_cells + 1) {}
     };
+
+    static constexpr Scalar CFL_multiplier = static_cast<Scalar>(1.0/(2.0 * PolynomialOrder + 1.0));
 
     DG() : S_(compute_S()), M_(compute_M()), B_(compute_B()), M_inv_(M_.inverse()) {}
 
@@ -101,7 +118,7 @@ private:
     }
 
 public:
-    [[nodiscard]] static State evaluate_poly(const Element &element, Scalar xi) noexcept
+    [[nodiscard]] static State evaluate_element(const Element &element, Scalar xi) noexcept
     {
         State result{};
         for (std::size_t j = 0; j <= PolynomialOrder; ++j)
@@ -121,15 +138,18 @@ public:
         // Compute interface fluxes and get max cell speed
         Scalar max_cell_speed = static_cast<Scalar>(0.0);
         
+
         // Left boundary
         workspace.ULs[0] = LeftBC<DG>::evaluate(U);
-        workspace.URs[0] = evaluate_poly(U(0), static_cast<Scalar>(-1.0));
+        workspace.URs[0] = evaluate_element(U(0), static_cast<Scalar>(-1.0));
+        max_cell_speed = std::max(max_cell_speed, NumericalFlux::compute(workspace.ULs[0], workspace.URs[0], workspace.interface_fluxes[0]));
         
         // Interior interfaces
+        #pragma omp parallel for reduction(max: max_cell_speed)
         for (std::size_t i = 1; i < num_cells; ++i)
         {
-            workspace.ULs[i] = evaluate_poly(U(i - 1), static_cast<Scalar>(1.0));
-            workspace.URs[i] = evaluate_poly(U(i), static_cast<Scalar>(-1.0));
+            workspace.ULs[i] = evaluate_element(U(i - 1), static_cast<Scalar>(1.0));
+            workspace.URs[i] = evaluate_element(U(i), static_cast<Scalar>(-1.0));
 
             // Computing numerical flux
             max_cell_speed = std::max(max_cell_speed, 
@@ -137,24 +157,30 @@ public:
         }
         
         // Right boundary
-        workspace.ULs[num_cells] = evaluate_poly(U(num_cells - 1), static_cast<Scalar>(1.0));
+        workspace.ULs[num_cells] = evaluate_element(U(num_cells - 1), static_cast<Scalar>(1.0));
         workspace.URs[num_cells] = RightBC<DG>::evaluate(U);
+        max_cell_speed = std::max(max_cell_speed, NumericalFlux::compute(workspace.ULs[num_cells], workspace.URs[num_cells], workspace.interface_fluxes[num_cells]));
 
+        #pragma omp parallel for
         // Project flux onto polynomial basis
         for (std::size_t i = 0; i < num_cells; ++i)
         {
             for (std::size_t j = 0; j <= PolynomialOrder; ++j)
             {
-                auto integrand = [&](Scalar x) -> State
+                auto integrand = [&](Scalar xi) -> State
                 {
-                    return Physics::physical_flux(evaluate_poly(U(i), x)) * PolynomialBasis::evaluate(j, x);
+                    return Physics::physical_flux(evaluate_element(U(i), xi)) * PolynomialBasis::evaluate(j, xi);
                 };
                 const auto integrated_flux = Quadrature::integrate(integrand, static_cast<Scalar>(-1.0), static_cast<Scalar>(1.0));
                 workspace.projected_fluxes(i).coeffs.row(j) << integrated_flux.density,
                     integrated_flux.momentum,
                     integrated_flux.total_energy;
             }
-            
+        }
+        #pragma omp parallel for
+        // Compute residuals
+        for (std::size_t i = 0; i < num_cells; ++i)
+        {
             const auto &flux_L = workspace.interface_fluxes[i];
             workspace.F_star_matrices[i].row(0) << flux_L.density,
                 flux_L.momentum,
@@ -164,8 +190,8 @@ public:
             workspace.F_star_matrices[i].row(1) << -flux_R.density,
                 -flux_R.momentum,
                 -flux_R.total_energy;
-            
-            R(i).coeffs = -M_inv_ * (S_ * workspace.projected_fluxes(i).coeffs - B_ * workspace.F_star_matrices[i]);
+
+            R(i).coeffs = (2.0 / U.dx) * (M_inv_ * (S_.transpose() * M_inv_ * workspace.projected_fluxes(i).coeffs + B_ * workspace.F_star_matrices[i]));
         }
 
         return max_cell_speed;
