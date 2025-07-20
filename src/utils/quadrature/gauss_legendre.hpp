@@ -6,8 +6,9 @@
 #include <type_traits>
 #include "gl_quadrature_data.hpp" // Include the generated data
 
-template<typename Scalar, std::size_t N>
+template<typename ScalarT, std::size_t N>
 struct GLQuadrature {
+    using Scalar = ScalarT;
     static constexpr std::size_t order = N;
     static_assert(N >= 1 && N <= 15, "GLQuadrature is implemented for N between 1 and 15.");
     static_assert(std::is_floating_point_v<Scalar>, "Scalar must be a floating-point type");
