@@ -4,9 +4,10 @@
 #include <array>
 #include "gll_quadrature_data.hpp" // AI filled by coefsandweights.py script
 
-template<typename Scalar, std::size_t N>
+template<typename ScalarT, std::size_t N>
 struct GLLQuadrature {
-    static constexpr std::size_t order = N;
+    using Scalar = ScalarT;
+    static constexpr std::size_t order = N-1;
     static_assert(N >= 1 && N <= 15, "GLQuadrature is implemented for N between 1 and 15.");
     static constexpr std::array<Scalar, N> nodes = GLL::GLLData<Scalar, N>::nodes;
     static constexpr std::array<Scalar, N> weights = GLL::GLLData<Scalar, N>::weights;
