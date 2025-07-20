@@ -5,6 +5,12 @@ namespace GLL {
 template<typename Scalar, std::size_t N> struct GLLData;
 
 template<typename Scalar>
+struct GLLData<Scalar, 1> {
+    static constexpr std::array<Scalar, 1> nodes = {0.000000000000000000, };
+    static constexpr std::array<Scalar, 1> weights = {2.000000000000000000};
+};
+
+template<typename Scalar>
 struct GLLData<Scalar, 2> {
     static constexpr std::array<Scalar, 2> nodes = {-1.000000000000000000, 1.000000000000000000};
     static constexpr std::array<Scalar, 2> weights = {1.000000000000000000, 1.000000000000000000};
