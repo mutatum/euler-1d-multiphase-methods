@@ -14,6 +14,14 @@ struct Lagrange
     static_assert(std::is_floating_point_v<Scalar>, "Scalar must be a floating-point type");
     static_assert(num_basis_functions > 0, "Must have at least one basis function");
 
+    template<std::size_t N>
+    [[nodiscard]] static constexpr Scalar evaluate(Scalar x) noexcept
+    {
+        if constexpr (N == 0) return static_cast<Scalar>(1.0);
+        if constexpr (N == 1) return x;
+        return evaluate<N-1>(x) * x - static_cast<Scalar>(N-1) * evaluate<N-2>(x) / static_cast<Scalar>(N);
+    }
+
     [[nodiscard]] static constexpr Scalar evaluate(std::size_t i, Scalar x) noexcept {
         Scalar result = static_cast<Scalar>(1.0);
         for (std::size_t j = 0; j < num_basis_functions; ++j) {
