@@ -2,6 +2,7 @@
 #include "../field/field.hpp"
 #include <stdexcept>
 #include <type_traits>
+#include <cmath>
 
 template <class SchemePolicy>
 class Field;
