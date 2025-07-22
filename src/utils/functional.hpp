@@ -56,7 +56,7 @@ auto compute_L2_error(const Field &field, const Callable &exact_solution)
 {
     using Scalar = typename Field::Scalar;
     using Scheme = typename Field::Scheme;
-    using ErrorQuadrature = GLQuadrature<Scalar, 15>;
+    using ErrorQuadrature = GLQuadrature<Scalar, Scheme::PolynomialOrder>;
 
     Scalar total_error_sq = Scalar(0.0);
     Scalar a = field.domain_start;
