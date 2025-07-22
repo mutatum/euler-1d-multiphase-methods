@@ -66,6 +66,13 @@ struct EulerState
         return *this;
     }
 
+    Eigen::Matrix<Scalar, 1, 3> to_vector() const
+    {
+        Eigen::Matrix<Scalar, 1, 3> vec;
+        vec << density, momentum, total_energy;
+        return vec;
+    }
+
     // This is to account for Eigen's expression template in DG
     template <typename Derived>
     EulerState &operator+=(const Eigen::MatrixBase<Derived> &other)
@@ -73,6 +80,16 @@ struct EulerState
         density += other(0);
         momentum += other(1);
         total_energy += other(2);
+        return *this;
+    }
+
+    // This is to account for Eigen's expression template in DG
+    template <typename Derived>
+    EulerState &operator=(const Eigen::MatrixBase<Derived> &other)
+    {
+        density = other(0);
+        momentum = other(1);
+        total_energy = other(2);
         return *this;
     }
 
@@ -171,6 +188,11 @@ public:
     using EOS = EquationOfState;
     static constexpr std::size_t variables = 3; // density, momentum, total_energy
 
+    static Scalar density(const State &U)
+    {
+        return U.density;
+    }
+    
     static Scalar pressure(const State &U)
     {
         return EOS::pressure(U);
