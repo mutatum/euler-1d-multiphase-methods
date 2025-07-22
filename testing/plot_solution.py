@@ -5,7 +5,7 @@ import os
 import glob
 
 # Specify the polynomial order to plot
-poly_order = 12 # Change this to match the order used in your simulation
+poly_order = 5 # Change this to match the order used in your simulation
 
 # Number of first solutions to display on main and error plots
 num_displayed_solutions = 5  # Change this to control how many are shown on main/error plots
@@ -13,7 +13,7 @@ num_displayed_solutions = 5  # Change this to control how many are shown on main
 def newton_raphson(x0, f, df, eps):
     
     x = x0
-    max_it=800
+    max_it=1500
     while abs(f(x)) > eps:
         x -= f(x)/df(x)
         max_it-=1
@@ -64,7 +64,7 @@ def load_csv(filename):
                     header_lines += 1  # Add one more for the column header line
                     break
         
-        data = np.loadtxt(filename, delimiter=',', skiprows=header_lines, dtype=np.float64)
+        data = np.loadtxt(filename, delimiter=',', skiprows=header_lines, dtype=np.longdouble)
         result = {
             'cell_index': data[:, 0].astype(int),
             'cell_left': data[:, 1],
