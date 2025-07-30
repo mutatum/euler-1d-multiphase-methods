@@ -6,6 +6,7 @@
 #include <type_traits>
 #include <cassert>
 #include <ostream>
+#include "euler_concepts.hpp"
 
 namespace physics {
 namespace euler {
@@ -119,6 +120,11 @@ struct EulerState
         return EulerState{density - other.density, momentum - other.momentum, total_energy - other.total_energy};
     }
 
+    EulerState operator*(const EulerState &other) const
+    {
+        return EulerState{density * other.density, momentum * other.momentum, total_energy * other.total_energy};
+    }
+
     EulerState operator*(Scalar scalar) const
     {
         return EulerState{density * scalar, momentum * scalar, total_energy * scalar};
@@ -137,15 +143,16 @@ EulerState<ScalarType> operator*(ScalarType scalar, const EulerState<ScalarType>
     return state * scalar;
 }
 
-template <typename Scalar, auto gamma_value>
+template <typename ScalarT, auto gamma_value>
 struct IdealGasEOS
 {
-    using ScalarType = Scalar;
+    using Scalar = ScalarT;
+    using State = EulerState<Scalar>;
     static constexpr Scalar gamma = static_cast<Scalar>(gamma_value);
     
     static_assert(gamma_value > Scalar(1), "Gamma must be greater than 1 for ideal gas");
     
-    static constexpr Scalar pressure(const EulerState<Scalar> &U)
+    static constexpr Scalar pressure(const State &U)
     {
         assert(U.density > Scalar(0) && "Density must be positive for pressure calculation");
         const Scalar kinetic_energy = static_cast<Scalar>(0.5) * U.momentum * U.momentum / U.density;
@@ -153,7 +160,7 @@ struct IdealGasEOS
         return (gamma - static_cast<Scalar>(1.0)) * internal_energy;
     }
 
-    static constexpr Scalar sound_speed(const EulerState<Scalar> &U)
+    static constexpr Scalar sound_speed(const State &U)
     {
         assert(U.density > Scalar(0) && "Density must be positive for sound speed calculation");
         const Scalar p = pressure(U);
@@ -180,7 +187,7 @@ namespace constants {
     constexpr T gamma_diatomic = T(7.0/5.0);
 }
 
-template <typename Scalar, typename EquationOfState>
+template <typename Scalar, EOSConcept EquationOfState>
 struct EulerPhysics
 {
 public:
