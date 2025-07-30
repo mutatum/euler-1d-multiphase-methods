@@ -1,5 +1,6 @@
 #pragma once
 #include <Eigen/Dense>
+#include "DG_concepts.hpp"
 #include "../field/field.hpp"
 #include "../utils/basis/lagrange.hpp"
 #include "../utils/quadrature/gauss_lobatto_legendre.hpp"
@@ -7,28 +8,33 @@
 #include <algorithm>
 #include <type_traits>
 #include <iostream>
-#include <omp.h>
+// #include <omp.h>
 // #define EIGEN_USE_THREADS
 
 template <class SchemePolicy>
 class Field;
 
-template <class PhysicsModel,
-          class EntropyStableFlux,
-          class NumericalFlux,
-          std::size_t Order,
-          template <class> class LeftBC,
-          template <class> class RightBC>
-class DGSEM
+// template <class PhysicsModel,
+//           class EntropyStableFlux,
+//           class NumericalFlux,
+//           std::size_t Order,
+//           template <class> class LeftBC,
+//           template <class> class RightBC>
+template <DGSEM_ESConfigConcept Config>
+class DGSEM_ES
 {
 public:
-    using Physics = PhysicsModel;
-    using State = typename PhysicsModel::State;
+    using Physics = Config::Physics;
+    using State = typename Physics::State;
     using Scalar = typename State::Scalar;
-    static constexpr std::size_t PolynomialOrder = Order-1;
-    using Quadrature = GLLQuadrature<Scalar, PolynomialOrder+1>;
+    static constexpr std::size_t PolynomialOrder = Config::order;
+    using Quadrature = GLLQuadrature<Scalar, PolynomialOrder + 1>;
     using PolynomialBasis = Lagrange<Quadrature::nodes>;
-    static constexpr std::size_t Variables = PhysicsModel::variables;
+    static constexpr std::size_t Variables = Physics::variables;
+    using EntropyStableFlux = Config::EntropyFlux;
+    using NumericalFlux = Config::NumericalFlux;
+    using LeftBC = typename Config::template LeftBC<DGSEM_ES>;
+    using RightBC = typename Config::template RightBC<DGSEM_ES>;
 
     struct Element
     {
@@ -49,7 +55,7 @@ public:
 
     static constexpr Scalar CFL_multiplier = static_cast<Scalar>(1.0/(2.0 * PolynomialOrder + 1.0));
 
-    DGSEM() : D_(compute_D()) {}
+    DGSEM_ES() : D_(compute_D()) {}
 
 private:
     const Eigen::Matrix<Scalar, PolynomialOrder + 1, PolynomialOrder + 1> D_;
@@ -79,19 +85,16 @@ public:
         return result;
     }
 
-    Scalar compute_residual(const Field<DGSEM> &U, Field<DGSEM> &R, Workspace &workspace) const
+    Scalar compute_residual(const Field<DGSEM_ES> &U, Field<DGSEM_ES> &R, Workspace &workspace) const
     {
         const std::size_t num_cells = U.size();
-        if (num_cells == 0) {
-            throw std::invalid_argument("Field cannot be empty");
-        }
 
         // Compute interface fluxes and get max cell speed
         Scalar max_cell_speed = static_cast<Scalar>(0.0);
         
 
         // Left boundary
-        workspace.ULs[0] = LeftBC<DGSEM>::evaluate(U);
+        workspace.ULs[0] = LeftBC::evaluate(U);
         workspace.URs[0] = U(0).coeffs.row(0);
         max_cell_speed = std::max(max_cell_speed, NumericalFlux::compute(workspace.ULs[0], workspace.URs[0], workspace.interface_fluxes[0]));
         
@@ -109,21 +112,21 @@ public:
         
         // Right boundary
         workspace.ULs[num_cells] = U(num_cells - 1).coeffs.row(PolynomialOrder);
-        workspace.URs[num_cells] = RightBC<DGSEM>::evaluate(U);
+        workspace.URs[num_cells] = RightBC::evaluate(U);
         max_cell_speed = std::max(max_cell_speed, NumericalFlux::compute(workspace.ULs[num_cells], workspace.URs[num_cells], workspace.interface_fluxes[num_cells]));
 
         #pragma omp parallel for
         for (std::size_t i = 0; i < num_cells; ++i)
         {
             R(i).coeffs.setZero();
-            for (std::size_t j = 0; j <= PolynomialOrder + 1; ++j)
+            for (std::size_t j = 0; j < PolynomialOrder + 1; ++j)
             {
                 for (std::size_t k = 0; k < PolynomialOrder + 1; ++k) {
-                    State flux;
+                    State state_j{U(i).coeffs.row(j)},
+                          state_k{U(i).coeffs.row(k)},
+                          flux;
                     EntropyStableFlux::compute(
-                        State{U(i).coeffs.row(j)},
-                        State{U(i).coeffs.row(k)},
-                        flux
+                        state_j, state_k,flux
                     );
                     R(i).coeffs.row(j) -= static_cast<Scalar>(2.0) * D_(j, k) * flux.to_vector();
                 }
