@@ -1,7 +1,8 @@
 #pragma once
 #include <cmath>
+#include "../physics_concepts.hpp"
 
-template <class PhysicsModel>
+template <PhysicsModelConcept PhysicsModel>
 struct Rusanov
 {
     using Physics = PhysicsModel;
