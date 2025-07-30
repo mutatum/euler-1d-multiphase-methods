@@ -6,26 +6,42 @@
 #include <type_traits>
 #include <iostream>
 #include <omp.h>
+#include "DG_concepts.hpp"
 #define EIGEN_USE_THREADS
 
 template <class SchemePolicy>
 class Field;
 
-template <class PhysicsModel,
-          class NumericalFlux,
-          class PolynomialBasisClass,
-          class QuadratureClass,
-          template <class> class LeftBC,
-          template <class> class RightBC>
+// Configuration for classical DG Scheme
+// struct DGConfig
+// {
+//     using Physics = PhysicsModel;
+//     using NumericalFlux = NumericalFlux;
+//     using PolynomialBasis = PolynomialBasisClass;
+//     using Quadrature = QuadratureClass;
+//     template <class DGType> using LeftBC = LeftBoundaryCondition;
+//     template <class DGType> using RightBC = RightBoundaryCondition;
+// };
+
+// template <class PhysicsModel,
+//           class NumericalFlux,
+//           class PolynomialBasisClass,
+//           class QuadratureClass,
+//           template <class> class LeftBC,
+//           template <class> class RightBC>
+template <DGConfigConcept Config>
 class DG
 {
 public:
-    using Physics = PhysicsModel;
-    using State = typename PhysicsModel::State;
+    using Physics = typename Config::Physics;
+    using State = typename Physics::State;
     using Scalar = typename State::Scalar;
-    using PolynomialBasis = PolynomialBasisClass;
-    using Quadrature = QuadratureClass;
-    static constexpr std::size_t Variables = PhysicsModel::variables;
+    using PolynomialBasis = typename Config::PolynomialBasis;
+    using Quadrature = typename Config::Quadrature;
+    using NumericalFlux = typename Config::NumericalFlux;
+    using LeftBC = typename Config::template LeftBC<DG>;
+    using RightBC = typename Config::template RightBC<DG>;
+    static constexpr std::size_t Variables = Physics::variables;
     static constexpr std::size_t PolynomialOrder = PolynomialBasis::order;
 
     struct Element
@@ -129,7 +145,7 @@ public:
         
 
         // Left boundary
-        workspace.ULs[0] = LeftBC<DG>::evaluate(U);
+        workspace.ULs[0] = LeftBC::evaluate(U);
         workspace.URs[0] = evaluate_element(U(0), static_cast<Scalar>(-1.0));
         max_cell_speed = std::max(max_cell_speed, NumericalFlux::compute(workspace.ULs[0], workspace.URs[0], workspace.interface_fluxes[0]));
         
@@ -147,7 +163,7 @@ public:
         
         // Right boundary
         workspace.ULs[num_cells] = evaluate_element(U(num_cells - 1), static_cast<Scalar>(1.0));
-        workspace.URs[num_cells] = RightBC<DG>::evaluate(U);
+        workspace.URs[num_cells] = RightBC::evaluate(U);
         max_cell_speed = std::max(max_cell_speed, NumericalFlux::compute(workspace.ULs[num_cells], workspace.URs[num_cells], workspace.interface_fluxes[num_cells]));
 
         #pragma omp parallel for
@@ -166,6 +182,7 @@ public:
                     integrated_flux.total_energy;
             }
         }
+
         #pragma omp parallel for
         // Compute residuals
         for (std::size_t i = 0; i < num_cells; ++i)
