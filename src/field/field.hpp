@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <type_traits>
 #include <cassert>
+#include <Eigen/Dense>
 
 template <typename SchemePolicy>
 class Field
