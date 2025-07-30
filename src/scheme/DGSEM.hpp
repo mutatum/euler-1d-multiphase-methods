@@ -7,27 +7,34 @@
 #include <algorithm>
 #include <type_traits>
 #include <iostream>
+// Concepts for DGSEM configuration
+#include "DG_concepts.hpp"
 #include <omp.h>
 // #define EIGEN_USE_THREADS
 
 template <class SchemePolicy>
 class Field;
 
-template <class PhysicsModel,
-          class NumericalFlux,
-          std::size_t Order,
-          template <class> class LeftBC,
-          template <class> class RightBC>
+// template <class PhysicsModel,
+//           class NumericalFlux,
+//           std::size_t Order,
+//           template <class> class LeftBC,
+//           template <class> class RightBC>
+template <DGSEMConfigConcept Config>
 class DGSEM
 {
 public:
-    using Physics = PhysicsModel;
-    using State = typename PhysicsModel::State;
+    using Physics = typename Config::Physics;
+    using State = typename Physics::State;
     using Scalar = typename State::Scalar;
-    static constexpr std::size_t PolynomialOrder = Order;
+    static constexpr std::size_t PolynomialOrder = Config::order;
     using Quadrature = GLLQuadrature<Scalar, PolynomialOrder+1>;
     using PolynomialBasis = Lagrange<Quadrature::nodes>;
-    static constexpr std::size_t Variables = PhysicsModel::variables;
+    // using PolynomialBasis = Lagrange<GLLQuadrature<Scalar, PolynomialOrder+1>::nodes>;
+    using NumericalFlux = typename Config::NumericalFlux;
+    using LeftBC = typename Config::template LeftBC<DGSEM>;
+    using RightBC = typename Config::template RightBC<DGSEM>;
+    static constexpr std::size_t Variables = Physics::variables;
 
     struct Element
     {
@@ -85,16 +92,13 @@ public:
     Scalar compute_residual(const Field<DGSEM> &U, Field<DGSEM> &R, Workspace &workspace) const
     {
         const std::size_t num_cells = U.size();
-        if (num_cells == 0) {
-            throw std::invalid_argument("Field cannot be empty");
-        }
 
         // Compute interface fluxes and get max cell speed
         Scalar max_cell_speed = static_cast<Scalar>(0.0);
         
 
         // Left boundary
-        workspace.ULs[0] = LeftBC<DGSEM>::evaluate(U);
+        workspace.ULs[0] = LeftBC::evaluate(U);
         workspace.URs[0] = U(0).coeffs.row(0);
         max_cell_speed = std::max(max_cell_speed, NumericalFlux::compute(workspace.ULs[0], workspace.URs[0], workspace.interface_fluxes[0]));
         
@@ -112,7 +116,7 @@ public:
         
         // Right boundary
         workspace.ULs[num_cells] = U(num_cells - 1).coeffs.row(PolynomialOrder);
-        workspace.URs[num_cells] = RightBC<DGSEM>::evaluate(U);
+        workspace.URs[num_cells] = RightBC::evaluate(U);
         max_cell_speed = std::max(max_cell_speed, NumericalFlux::compute(workspace.ULs[num_cells], workspace.URs[num_cells], workspace.interface_fluxes[num_cells]));
 
         #pragma omp parallel for
@@ -138,8 +142,8 @@ public:
             {
                 R(i).coeffs.row(j) = -workspace.DF[i].row(j);
             }
-            R(i).coeffs.row(0) -= (workspace.F(i).coeffs.row(0) - workspace.interface_fluxes[i].to_vector()) / Quadrature::weights[0];
-            R(i).coeffs.row(PolynomialOrder) += (workspace.F(i).coeffs.row(PolynomialOrder) - workspace.interface_fluxes[i+1].to_vector()) / Quadrature::weights[PolynomialOrder];
+            R(i).coeffs.row(0) += (workspace.interface_fluxes[i].to_vector() - workspace.F(i).coeffs.row(0)) / Quadrature::weights[0];
+            R(i).coeffs.row(PolynomialOrder) -= (workspace.interface_fluxes[i+1].to_vector() - workspace.F(i).coeffs.row(PolynomialOrder)) / Quadrature::weights[PolynomialOrder];
             R(i).coeffs *= (2.0 / U.dx);
         }
 
