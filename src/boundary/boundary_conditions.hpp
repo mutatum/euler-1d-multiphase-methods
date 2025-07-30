@@ -45,7 +45,7 @@ struct SolidWallBC
 
         State adjacent_state;
         if constexpr (side == Side::Left)
-            adjacent_state = Scheme::evaluate_element(U(0), static_cast<Scalar>(1.0));
+            adjacent_state = Scheme::evaluate_element(U(0), static_cast<Scalar>(-1.0));
         else
             adjacent_state = Scheme::evaluate_element(U(U.size() - 1), static_cast<Scalar>(1.0));
 
