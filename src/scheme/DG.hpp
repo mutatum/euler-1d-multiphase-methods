@@ -80,7 +80,7 @@ private:
             for (std::size_t k = 0; k < PolynomialOrder + 1; ++k)
             {
                 auto integrand = [&](Scalar x) -> Scalar
-                { return PolynomialBasis::evaluate(j, x) * PolynomialBasis::derivative(k, x); };
+                { return PolynomialBasis::evaluate(k, x) * PolynomialBasis::derivative(j, x); };
                 S(j, k) = Quadrature::integrate(integrand, static_cast<Scalar>(-1.0), static_cast<Scalar>(1.0));
             }
         }
@@ -144,6 +144,7 @@ public:
         Scalar max_cell_speed = static_cast<Scalar>(0.0);
         
 
+        // std::cout << "Computing interface fluxes and max cell speed..." << std::endl;
         // Left boundary
         workspace.ULs[0] = LeftBC::evaluate(U);
         workspace.URs[0] = evaluate_element(U(0), static_cast<Scalar>(-1.0));
@@ -155,6 +156,10 @@ public:
         {
             workspace.ULs[i] = evaluate_element(U(i - 1), static_cast<Scalar>(1.0));
             workspace.URs[i] = evaluate_element(U(i), static_cast<Scalar>(-1.0));
+
+            // std::cout << "Computing numerical flux for interface " << i << std::endl;
+            // std::cout << "ULs[" << i << "]: " << workspace.ULs[i] << std::endl;
+            // std::cout << "URs[" << i << "]: " << workspace.URs[i] << std::endl;
 
             // Computing numerical flux
             max_cell_speed = std::max(max_cell_speed, 
@@ -174,6 +179,7 @@ public:
             {
                 auto integrand = [&](Scalar xi) -> State
                 {
+                    // std::cout << "Evaluating flux for cell " << i << ", order " << j << ", xi = " << xi << std::endl;
                     return Physics::physical_flux(evaluate_element(U(i), xi)) * PolynomialBasis::evaluate(j, xi);
                 };
                 const auto integrated_flux = Quadrature::integrate(integrand, static_cast<Scalar>(-1.0), static_cast<Scalar>(1.0));
@@ -197,7 +203,7 @@ public:
                 -flux_R.momentum,
                 -flux_R.total_energy;
 
-            R(i).coeffs = (2.0 / U.dx) * (M_inv_ * (S_.transpose() * M_inv_ * workspace.projected_fluxes(i).coeffs + B_ * workspace.F_star_matrices[i]));
+            R(i).coeffs = (2.0 / U.dx) * (M_inv_ * (S_ * M_inv_ * workspace.projected_fluxes(i).coeffs + B_ * workspace.F_star_matrices[i]));
         }
 
         return max_cell_speed;

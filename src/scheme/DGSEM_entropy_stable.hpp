@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <type_traits>
 #include <iostream>
-// #include <omp.h>
+#include <omp.h>
 // #define EIGEN_USE_THREADS
 
 template <class SchemePolicy>
