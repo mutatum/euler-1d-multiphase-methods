@@ -5,7 +5,7 @@
 #include <iomanip>
 #include <iostream>
 #include "../field/field.hpp"
-#include "../physics/euler/isentropic_solution.hpp"
+#include "../physics/Euler/isentropic_solution.hpp"
 
 /**
  * @brief Write metadata as comments to the CSV output file.
