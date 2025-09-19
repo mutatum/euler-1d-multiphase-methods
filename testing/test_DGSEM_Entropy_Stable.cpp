@@ -12,9 +12,9 @@
 #include "../src/boundary/boundary_conditions.hpp"
 #include "../src/time_integration/runge_kutta.hpp"
 #include <Eigen/Dense>
-#include <iostream>
-#include <fstream>
+#include "../src/io/output.hpp"
 #include <iomanip> // Include iomanip for std::setprecision
+#include <omp.h>
 
 template <class Scheme>
 void initialize_field(Field<Scheme> &field, double domain_start, double domain_end, double factor = 0.1)
@@ -35,116 +35,20 @@ void initialize_field(Field<Scheme> &field, double domain_start, double domain_e
             coeffs(2) = result.total_energy;
             return coeffs;
         };
-        field(i).coeffs = compute_L2_projection_onto_basis<typename Scheme::Quadrature, typename Scheme::PolynomialBasis>(f);
+        field(i).coeffs = compute_L2_projection_onto_basis<GLQuadrature<double, 14>, typename Scheme::PolynomialBasis>(f);
     }
 }
 
-template <class Scheme>
-void write_csv_metadata(std::ofstream &outfile, const std::string &scheme_name, int poly_order, int quad_order, std::size_t num_cells, const std::string &time_integrator, double cfl, std::size_t step_count, double final_time)
-{
-    outfile << std::setprecision(4) << std::scientific;
-    outfile << "# scheme: " << scheme_name << "\n";
-    outfile << "# polynomial_order: " << poly_order << "\n";
-    outfile << "# quadrature_order: " << quad_order << "\n";
-    outfile << "# num_cells: " << num_cells << "\n";
-    outfile << "# time_stepper: " << time_integrator << "\n";
-    outfile << "# cfl: " << cfl << "\n";
-    outfile << "# step_count: " << step_count << "\n";
-    outfile << "# final_time: " << final_time << "\n";
-}
-
-template <class Scheme>
-void write_solution_to_file(
-    const Field<Scheme> &U,
-    double domain_start,
-    double dx,
-    const std::string &filename,
-    std::size_t points_per_cell = 10 * (Scheme::PolynomialOrder + 2),
-    std::size_t step_count = 0,
-    double final_time = 0.0,
-    double cfl = 0.0,
-    const std::string &time_integrator = "unknown")
-{
-    std::ofstream outfile(filename);
-    if (!outfile.is_open())
-    {
-        std::cerr << "Error: Could not open file " << filename << std::endl;
-        return;
-    }
-
-    outfile << std::setprecision(17) << std::scientific;
-
-    write_csv_metadata<Scheme>(
-        outfile,
-        "DGSEM",
-        Scheme::PolynomialOrder,
-        Scheme::Quadrature::order,
-        U.size(),
-        time_integrator,
-        cfl,
-        step_count,
-        final_time);
-
-    outfile << std::setprecision(std::numeric_limits<double>::digits10 + 1);
-    outfile << "cell_index,cell_left,cell_right,x,rho,momentum,total_energy\n";
-    for (std::size_t i = 0; i < U.size(); ++i)
-    {
-        const double x_left = domain_start + i * dx;
-        const double x_right = x_left + dx;
-        for (int j = 0; j < points_per_cell; ++j)
-        {
-            double xi = -1.0 + 2.0 * j / (points_per_cell - 1);
-            double x = x_left + (xi + 1.0) * dx / 2.0;
-            typename Scheme::State state = Scheme::evaluate_element(U(i), xi);
-            outfile << i << "," << x_left << "," << x_right << "," << x << "," << state.density << "," << state.momentum << "," << state.total_energy << "\n";
-        }
-    }
-}
-
-template <class Scheme>
-void write_exact_solution_to_file(
-    double domain_start,
-    double dx,
-    std::size_t num_cells,
-    double t,
-    const std::string &filename,
-    int points_per_cell = 4,
-    std::size_t step_count = 0)
-{
-    std::ofstream outfile(filename);
-    if (!outfile.is_open())
-    {
-        std::cerr << "Error: Could not open file " << filename << std::endl;
-        return;
-    }
-
-    outfile << std::setprecision(17) << std::scientific;
-
-    write_csv_metadata<Scheme>(
-        outfile,
-        "Exact",
-        Scheme::PolynomialOrder + 1,
-        Scheme::Quadrature::order + 1,
-        num_cells,
-        "none",
-        0.0,
-        step_count,
-        t);
-
-    outfile << std::setprecision(17) << std::scientific;
-    outfile << "cell_index,cell_left,cell_right,x,rho,momentum,total_energy\n";
-    for (std::size_t i = 0; i < num_cells; ++i)
-    {
-        const double x_left = domain_start + i * dx;
-        const double x_right = x_left + dx;
-        for (int j = 0; j < points_per_cell; ++j)
-        {
-            double x = x_left + static_cast<double>(j) / (points_per_cell - 1) * dx;
-            const auto exact_state = physics::euler::isentropic_solution<double>(x, t, 0.1);
-            outfile << i << "," << x_left << "," << x_right << "," << x << "," << exact_state.density << "," << exact_state.momentum << "," << exact_state.total_energy << "\n";
-        }
-    }
-}
+using namespace physics::euler;
+struct DGSEM_ESConfig {
+    using Physics = EulerPhysics<double, IdealGasEOS<double, 3.0>>;
+    using EntropyFlux = Chandrashekar<Physics>;
+    // using EntropyFlux = IsmailRoe<Physics>;
+    using NumericalFlux = Rusanov<Physics>;
+    static constexpr std::size_t order = 2;
+    template <class Scheme> using LeftBC = BoundaryConditions::LeftPeriodicBC<Scheme>;
+    template <class Scheme> using RightBC = BoundaryConditions::RightPeriodicBC<Scheme>;
+};
 
 int main(int argc, char *argv[])
 {
@@ -156,13 +60,7 @@ int main(int argc, char *argv[])
     std::size_t starting_n_cells = std::stoi(argv[1]);
     const double final_time = std::stod(argv[2]);
 
-    using namespace physics::euler;
-    using Physics = EulerPhysics<double, IdealGasEOS<double, 3.0>>;
-    using NumericalFlux = Rusanov<Physics>;
-    // using EntropyStableFlux = IsmailRoe<Physics>;
-    using EntropyStableFlux = Chandrashekar<Physics>;
-    constexpr std::size_t order = 5;
-    using DGScheme = DGSEM<Physics, EntropyStableFlux, NumericalFlux, order, BoundaryConditions::LeftPeriodicBC, BoundaryConditions::RightPeriodicBC>;
+    using DGScheme = DGSEM_ES<DGSEM_ESConfig>;
 
     DGScheme scheme;
     const double domain_start = -1.0;
@@ -185,20 +83,20 @@ int main(int argc, char *argv[])
         initialize_field(U_convergence, domain_start, domain_end, 0.1);
         DGScheme::Workspace workspace_convergence(num_cells);
         const double cfl = 0.1;
-        RungeKutta4<DGScheme> rk3_conv(num_cells, cfl);
+        RKSSP<DGScheme, 4> rk(num_cells, cfl);
         t = 0.0;
 
         std::size_t steps = 0;
         while (t < final_time)
         {
-            dt = rk3_conv.step(U_convergence, workspace_convergence, scheme, dx_conv, final_time - t, true, order);
+            dt = rk.step(U_convergence, workspace_convergence, scheme, dx_conv, final_time - t);
 
             t += dt;
             ++steps;
         }
         // std::cout << "Finished simulation for " << num_cells << " cells at t = " << t << " after " << steps << " steps." << std::endl;
         write_solution_to_file(U_convergence, domain_start, dx_conv, "solution_final" + std::to_string(i) + "_order" + std::to_string(DGScheme::PolynomialOrder+1) + ".csv",
-                               10 * (DGScheme::PolynomialOrder + 2), /*step_count=*/steps, /*final_time=*/t, /*cfl=*/cfl, /*time_integrator=*/"RungeKutta4");
+                               /*step_count=*/steps, /*final_time=*/t, /*cfl=*/cfl, /*time_integrator=*/"RungeKutta4");
 
         auto exact_solution = [&final_time](double x)
         {
@@ -230,7 +128,7 @@ int main(int argc, char *argv[])
     double dx_convergence = (domain_end - domain_start) / prev_num_cells;
     write_exact_solution_to_file<DGScheme>(
         domain_start, dx_convergence, prev_num_cells, t,
-        "solution_exact_order" + std::to_string(DGScheme::PolynomialOrder) + ".csv",
+        "solution_exact_order" + std::to_string(DGScheme::PolynomialOrder+1) + ".csv",
         10 * (DGScheme::PolynomialOrder + 2)
     );
     std::cout << "Order of polynomial basis: " << DGScheme::PolynomialOrder << std::endl;
