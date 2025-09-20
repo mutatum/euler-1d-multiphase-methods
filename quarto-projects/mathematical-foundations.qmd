@@ -1,0 +1,284 @@
+---
+title: "Mathematical Foundations of Numerical Methods"
+subtitle: "From Theoretical Analysis to Computational Implementation"
+author: "Your Name"
+date: "`r Sys.Date()`"
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    theme: flatly
+    fig-width: 8
+    fig-height: 6
+    number-sections: true
+execute:
+  echo: true
+  warning: false
+---
+
+# Introduction
+
+This document explores the mathematical foundations underlying the numerical methods I've studied and implemented during my Master's program in Applied Mathematics (MANU) at the University of Montpellier.
+
+# Functional Analysis & Sobolev Spaces
+
+## Definition and Properties
+
+Let $\Omega \subset \mathbb{R}^d$ be a bounded domain. The Sobolev space $H^k(\Omega)$ is defined as:
+
+$$
+H^k(\Omega) = \{u \in L^2(\Omega) : D^\alpha u \in L^2(\Omega), \forall |\alpha| \leq k\}
+$$
+
+with the norm:
+$$
+\|u\|_{H^k(\Omega)} = \left(\sum_{|\alpha| \leq k} \|D^\alpha u\|_{L^2(\Omega)}^2\right)^{1/2}
+$$
+
+**Key Properties:**
+- $H^k(\Omega)$ is a Hilbert space
+- Embedding theorems: $H^{k+1}(\Omega) \hookrightarrow H^k(\Omega)$
+- Trace theorem: $\gamma: H^1(\Omega) \to H^{1/2}(\partial\Omega)$
+
+## Applications in Finite Element Methods
+
+The weak formulation of elliptic problems naturally lives in Sobolev spaces. For the Poisson equation:
+
+Find $u \in H_0^1(\Omega)$ such that:
+$$
+a(u,v) = \int_\Omega \nabla u \cdot \nabla v \, dx = \int_\Omega f v \, dx = L(v)
+$$
+
+for all $v \in H_0^1(\Omega)$.
+
+# Hyperbolic Conservation Laws
+
+## Mathematical Framework
+
+Consider the system of conservation laws:
+$$
+\frac{\partial U}{\partial t} + \frac{\partial F(U)}{\partial x} = 0, \quad x \in \mathbb{R}, t > 0
+$$
+
+**Definition (Hyperbolicity):** The system is hyperbolic if the Jacobian $A(U) = \frac{\partial F}{\partial U}$ has real eigenvalues and a complete set of linearly independent eigenvectors.
+
+## Entropy Conditions
+
+For uniqueness of weak solutions, we require entropy conditions:
+
+$$
+\frac{\partial \eta(U)}{\partial t} + \frac{\partial q(U)}{\partial x} \leq 0
+$$
+
+where $(\eta, q)$ is an entropy-entropy flux pair satisfying:
+$$
+\frac{\partial q}{\partial U} = \frac{\partial \eta}{\partial U} \frac{\partial F}{\partial U}
+$$
+
+## Riemann Problem
+
+The Riemann problem consists of:
+- Initial data: $U(x,0) = \begin{cases} U_L & x < 0 \\ U_R & x > 0 \end{cases}$
+- Self-similar solution: $U(x,t) = \tilde{U}(x/t)$
+
+**Solution Structure:**
+1. Rarefaction waves
+2. Shock waves  
+3. Contact discontinuities
+
+```{python}
+#| echo: true
+#| eval: false
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def riemann_exact_solution(x, t, gamma=1.4):
+    """
+    Compute exact solution to Riemann problem for ideal gas
+    """
+    # Sod shock tube initial conditions
+    rho_L, u_L, p_L = 1.0, 0.0, 1.0
+    rho_R, u_R, p_R = 0.125, 0.0, 0.1
+    
+    # Speed of sound
+    c_L = np.sqrt(gamma * p_L / rho_L)
+    c_R = np.sqrt(gamma * p_R / rho_R)
+    
+    # Solution depends on x/t
+    xi = x / t
+    
+    # This is a simplified version - full solution requires
+    # solving nonlinear equations for shock/rarefaction speeds
+    
+    return rho, u, p
+```
+
+# Discontinuous Galerkin Theory
+
+## Weak Formulation
+
+For the conservation law, multiply by test function $v_h$ and integrate by parts:
+
+$$
+\int_{K_i} \frac{\partial U_h}{\partial t} v_h \, dx + \int_{\partial K_i} F^*(U_h^-, U_h^+) \cdot n \, v_h^- \, ds - \int_{K_i} F(U_h) \cdot \nabla v_h \, dx = 0
+$$
+
+**Key Features:**
+- Discontinuous basis functions across element boundaries
+- Numerical flux $F^*$ couples elements
+- High-order accuracy within elements
+
+## Error Analysis
+
+**Theorem (A Priori Error Estimate):** Let $u$ be the exact solution with $u \in H^{k+1}(\Omega)$ and $u_h$ the DG approximation using polynomials of degree $k$. Then:
+
+$$
+\|u - u_h\|_{L^2} \leq Ch^{k+1}\|u\|_{H^{k+1}}
+$$
+
+where $h$ is the mesh size and $C$ is independent of $h$.
+
+## Stability Theory
+
+**Energy Stability:** For linear problems, the DG method satisfies:
+$$
+\frac{d}{dt}\|U_h\|^2 + \text{dissipation terms} \leq 0
+$$
+
+**Entropy Stability:** For nonlinear conservation laws, we design schemes to satisfy discrete entropy inequalities.
+
+# Numerical Linear Algebra
+
+## Matrix Properties in DG Methods
+
+The mass matrix in DG methods has the structure:
+$$
+M_{ij} = \int_{K} \phi_i \phi_j \, dx
+$$
+
+**Properties:**
+- Block diagonal structure (local support)
+- Positive definite
+- Condition number $\kappa(M) = O(h^{-1})$ for degree $p$
+
+## Iterative Solvers
+
+For large systems, we employ:
+
+1. **Conjugate Gradient** for symmetric positive definite systems
+2. **GMRES** for general nonsymmetric systems  
+3. **Multigrid** for optimal complexity
+
+**Convergence Theory:** For CG applied to $Ax = b$ with $A$ SPD:
+$$
+\|x_k - x^*\|_A \leq 2\left(\frac{\sqrt{\kappa} - 1}{\sqrt{\kappa} + 1}\right)^k \|x_0 - x^*\|_A
+$$
+
+# Computational Complexity
+
+## Time Complexity
+
+For DG methods on a mesh with $N$ elements and polynomial degree $p$:
+
+- **Assembly**: $O(N p^d)$ where $d$ is spatial dimension
+- **Time stepping**: $O(N p^d)$ per stage
+- **Total per time step**: $O(N p^d \cdot s)$ where $s$ is number of RK stages
+
+## Space Complexity
+
+- **Degrees of freedom**: $N \cdot (p+1)^d$
+- **Matrix storage**: $O(N p^{2d})$ for assembled matrices
+- **Memory requirements**: Typically dominated by solution storage
+
+# Mathematical Software Engineering
+
+## Design Patterns in Scientific Computing
+
+### Template Metaprogramming
+
+```cpp
+template<typename Physics, typename NumericalFlux, size_t Order>
+class DGScheme {
+    using Scalar = typename Physics::Scalar;
+    using State = typename Physics::State;
+    
+    static constexpr size_t PolynomialOrder = Order;
+    static constexpr size_t NumNodes = Order + 1;
+    
+    // Compile-time computations
+    static constexpr auto QuadratureNodes = 
+        gauss_legendre_nodes<Scalar, Order + 5>();
+};
+```
+
+### Policy-Based Design
+
+Different components can be combined flexibly:
+- **Physics**: Euler, Navier-Stokes, Shallow Water
+- **Numerical Flux**: Rusanov, Roe, HLL
+- **Basis**: Legendre, Lagrange
+- **Quadrature**: Gauss-Legendre, Gauss-Lobatto-Legendre
+
+## Verification and Validation
+
+### Method of Manufactured Solutions
+
+Construct exact solution $u_{exact}(x,t)$ and compute source term:
+$$
+S(x,t) = \frac{\partial u_{exact}}{\partial t} + \frac{\partial F(u_{exact})}{\partial x}
+$$
+
+Solve modified equation:
+$$
+\frac{\partial u}{\partial t} + \frac{\partial F(u)}{\partial x} = S(x,t)
+$$
+
+Expected error: $\|u - u_{exact}\|_{L^2} = O(h^{p+1})$
+
+### Convergence Testing
+
+```python
+#| echo: true  
+#| eval: false
+
+def convergence_test(orders, mesh_sizes):
+    """
+    Systematic convergence analysis
+    """
+    results = {}
+    
+    for p in orders:
+        errors = []
+        for N in mesh_sizes:
+            error = run_simulation(polynomial_order=p, num_cells=N)
+            errors.append(error)
+        
+        # Compute convergence rate
+        rates = []
+        for i in range(1, len(errors)):
+            h_ratio = mesh_sizes[i-1] / mesh_sizes[i]
+            error_ratio = errors[i-1] / errors[i]
+            rate = np.log(error_ratio) / np.log(h_ratio)
+            rates.append(rate)
+        
+        results[p] = {
+            'errors': errors,
+            'rates': rates,
+            'expected_rate': p + 1
+        }
+    
+    return results
+```
+
+# Conclusion
+
+This mathematical foundation provides the theoretical framework for developing robust, high-order numerical methods. The interplay between functional analysis, numerical linear algebra, and computational implementation creates a rich field of study that bridges pure mathematics and practical scientific computing.
+
+The rigorous mathematical analysis ensures that our numerical methods are:
+- **Consistent**: Discrete equations approach continuous ones
+- **Stable**: Small perturbations remain bounded  
+- **Convergent**: Numerical solution approaches exact solution
+
+These properties, combined with efficient implementation techniques, enable the solution of complex physical problems with confidence in the mathematical foundations.

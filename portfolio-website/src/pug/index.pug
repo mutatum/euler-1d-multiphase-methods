@@ -1,0 +1,347 @@
+doctype html
+html(lang='en')
+
+    head
+
+        meta(charset='utf-8')
+        meta(name='viewport', content='width=device-width, initial-scale=1, shrink-to-fit=no')
+        meta(name='description', content='')
+        meta(name='author', content='')
+
+        title Portfolio - Mathematical & Computational Sciences
+
+        link(rel='icon', type='image/x-icon', href='assets/img/favicon.ico')
+
+        // Font Awesome icons (free version)
+        script(src='https://use.fontawesome.com/releases/v6.3.0/js/all.js', crossorigin='anonymous')
+
+        // Google fonts
+        link(href='https://fonts.googleapis.com/css?family=Saira+Extra+Condensed:500,700', rel='stylesheet', type='text/css')
+        link(href='https://fonts.googleapis.com/css?family=Muli:400,400i,800,800i', rel='stylesheet', type='text/css')
+
+        // Core theme CSS (includes Bootstrap)
+        link(href='css/styles.css', rel='stylesheet')
+
+    body#page-top
+
+        // Navigation
+        nav#sideNav.navbar.navbar-expand-lg.navbar-dark.bg-primary.fixed-top
+            a.navbar-brand.js-scroll-trigger(href='#page-top')
+                span.d-block.d-lg-none Your Name
+                span.d-none.d-lg-block
+                    img.img-fluid.img-profile.rounded-circle.mx-auto.mb-2(src='assets/img/profile.jpg', alt='Mathematics & Computer Science Student')
+            button.navbar-toggler(type='button', data-bs-toggle='collapse', data-bs-target='#navbarResponsive', aria-controls='navbarResponsive', aria-expanded='false', aria-label='Toggle navigation')
+                span.navbar-toggler-icon
+            #navbarResponsive.collapse.navbar-collapse
+                ul.navbar-nav
+                    li.nav-item
+                        a.nav-link.js-scroll-trigger(href='#about') About
+                    li.nav-item
+                        a.nav-link.js-scroll-trigger(href='#education') Education
+                    li.nav-item
+                        a.nav-link.js-scroll-trigger(href='#skills') Skills
+                    li.nav-item
+                        a.nav-link.js-scroll-trigger(href='#projects') Projects
+                    li.nav-item
+                        a.nav-link.js-scroll-trigger(href='#experience') Experience
+                    li.nav-item
+                        a.nav-link.js-scroll-trigger(href='#interests') Interests
+
+        // Page Content
+        .container-fluid.p-0
+
+            // About
+            section#about.resume-section
+                .resume-section-content
+                    h1.mb-0
+                        | Your 
+                        span.text-primary Name
+                    .subheading.mb-5
+                        | Mathematics & Computer Science Student · Montpellier, France · 
+                        a(href='mailto:your.email@example.com') your.email@example.com
+                    p.lead.mb-5
+                        | Final year Master's student in Applied Mathematics (MANU - Modelling And Numerical Analysis) at University of Montpellier. 
+                        | Graduate of École 42 Paris and holder of a Bachelor's in General Mathematics. 
+                        | Passionate about computational methods, numerical analysis, and scientific computing. 
+                        | Currently seeking a 6-month internship opportunity in computational mathematics, numerical analysis, or scientific software development.
+                    .social-icons
+                        a.social-icon(href='#!')
+                            i.fab.fa-linkedin-in
+                        a.social-icon(href='#!')
+                            i.fab.fa-github
+                        a.social-icon(href='#!')
+                            i.fab.fa-python
+                        a.social-icon(href='#!')
+                            i.fab.fa-gitlab
+
+            hr.m-0
+
+            // Projects
+            section#projects.resume-section
+                .resume-section-content
+                    h2.mb-5 Mathematical & Computational Projects
+
+                    .d-flex.flex-column.flex-md-row.justify-content-between.mb-5
+                        .flex-grow-1
+                            h3.mb-0 1D Euler Multiphase Methods
+                            .subheading.mb-3 Advanced Numerical Methods Implementation
+                            p
+                                | Developed sophisticated C++ implementations of Discontinuous Galerkin (DG) and DGSEM methods 
+                                | for solving 1D Euler equations. Features entropy-stable schemes, Runge-Kutta time integration, 
+                                | and comprehensive convergence analysis. Includes Rusanov numerical flux, Gauss-Legendre quadrature, 
+                                | and advanced boundary condition handling.
+                            p
+                                strong Technologies: 
+                                | C++20, Eigen, CMake, Python (visualization), OpenMP
+                        .flex-shrink-0
+                            span.text-primary 2024
+
+                    .d-flex.flex-column.flex-md-row.justify-content-between.mb-5
+                        .flex-grow-1
+                            h3.mb-0 Computational Fluid Dynamics Solver
+                            .subheading.mb-3 High-Order Numerical Schemes
+                            p
+                                | Implementation of entropy-stable DGSEM methods for gas dynamics problems including 
+                                | shock tube simulations (Toro test cases). Features polynomial basis functions, 
+                                | L2 projection methods, and advanced visualization of convergence rates.
+                            p
+                                strong Key Features: 
+                                | Chandrashekar entropy flux, Ismail-Roe schemes, periodic boundary conditions
+                        .flex-shrink-0
+                            span.text-primary 2023-2024
+
+                    .d-flex.flex-column.flex-md-row.justify-content-between.mb-5
+                        .flex-grow-1
+                            h3.mb-0 Mathematical Analysis Projects
+                            .subheading.mb-3 Theoretical & Numerical Studies
+                            p
+                                | Various projects in pure and applied mathematics including differential equations, 
+                                | functional analysis, and numerical optimization. Developed computational tools for 
+                                | solving complex mathematical problems using modern scientific computing approaches.
+                            p
+                                strong Areas: 
+                                | PDE analysis, optimization theory, statistical modeling, algorithm design
+                        .flex-shrink-0
+                            span.text-primary 2021-2024
+
+            hr.m-0
+
+            // Experience
+            section#experience.resume-section
+               .resume-section-content
+                    h2.mb-5 Academic & Professional Experience
+
+                    .d-flex.flex-column.flex-md-row.justify-content-between.mb-5
+                        .flex-grow-1
+                            h3.mb-0 Research Assistant
+                            .subheading.mb-3 University of Montpellier - MANU Program
+                            p
+                                | Working on advanced numerical methods for multiphase flow problems. 
+                                | Developing high-order schemes for hyperbolic conservation laws with applications 
+                                | to computational fluid dynamics. Contributing to research in entropy-stable methods 
+                                | and discontinuous Galerkin formulations.
+                        .flex-shrink-0
+                            span.text-primary 2023 - Present
+
+                    .d-flex.flex-column.flex-md-row.justify-content-between.mb-5
+                        .flex-grow-1
+                            h3.mb-0 Teaching Assistant
+                            .subheading.mb-3 University of Montpellier - Mathematics Department
+                            p
+                                | Assisted in teaching undergraduate mathematics courses including calculus, 
+                                | linear algebra, and numerical analysis. Provided tutoring and support for 
+                                | students in mathematical problem-solving and computational methods.
+                        .flex-shrink-0
+                            span.text-primary 2022 - 2023
+
+                    .d-flex.flex-column.flex-md-row.justify-content-between
+                        .flex-grow-1
+                            h3.mb-0 Software Development Projects
+                            .subheading.mb-3 École 42 Paris
+                            p
+                                | Completed intensive programming projects focusing on system-level programming, 
+                                | algorithms, and data structures. Developed strong foundation in C/C++ programming 
+                                | and collaborative software development using Git and modern development practices.
+                        .flex-shrink-0
+                            span.text-primary 2019 - 2021
+
+            hr.m-0
+
+            // Education
+            section#education.resume-section
+                .resume-section-content
+                    h2.mb-5 Education
+
+                    .d-flex.flex-column.flex-md-row.justify-content-between.mb-5
+                        .flex-grow-1
+                            h3.mb-0 University of Montpellier
+                            .subheading.mb-3 Master's Degree in Applied Mathematics
+                            div MANU (Modelling And Numerical Analysis)
+                            p 
+                                | Focus: Computational fluid dynamics, numerical methods for PDEs, scientific computing, 
+                                | high-performance computing, and mathematical modeling of physical phenomena
+                        .flex-shrink-0
+                            span.text-primary 2023 - 2024 (Final Year)
+
+                    .d-flex.flex-column.flex-md-row.justify-content-between.mb-5
+                        .flex-grow-1
+                            h3.mb-0 University of Montpellier
+                            .subheading.mb-3 Bachelor's Degree (Licence)
+                            div Mathématiques Générales
+                            p
+                                | Comprehensive foundation in pure and applied mathematics including analysis, 
+                                | algebra, probability, statistics, and differential equations
+                        .flex-shrink-0
+                            span.text-primary 2021 - 2023
+
+                    .d-flex.flex-column.flex-md-row.justify-content-between
+                        .flex-grow-1
+                            h3.mb-0 École 42 Paris
+                            .subheading.mb-3 Computer Science Education
+                            div Peer-to-peer learning, project-based curriculum
+                            p
+                                | Intensive programming bootcamp focusing on C/C++, algorithms, data structures, 
+                                | system programming, and collaborative software development
+                        .flex-shrink-0
+                            span.text-primary 2019 - 2021
+
+            hr.m-0
+
+            // Skills
+            section#skills.resume-section
+                .resume-section-content
+                    h2.mb-5 Skills
+                    
+                    .subheading.mb-3 Programming Languages & Computational Tools
+                    .row.mb-4
+                        .col-md-6
+                            .mb-3
+                                strong C++ 
+                                .progress(style='height: 25px;')
+                                    .progress-bar.bg-primary(role='progressbar', style='width: 85%', aria-valuenow='85', aria-valuemin='0', aria-valuemax='100') 8.5/10
+                            .mb-3
+                                strong Python 
+                                .progress(style='height: 25px;')
+                                    .progress-bar.bg-primary(role='progressbar', style='width: 90%', aria-valuenow='90', aria-valuemin='0', aria-valuemax='100') 9.0/10
+                            .mb-3
+                                strong MATLAB 
+                                .progress(style='height: 25px;')
+                                    .progress-bar.bg-primary(role='progressbar', style='width: 80%', aria-valuenow='80', aria-valuemin='0', aria-valuemax='100') 8.0/10
+                            .mb-3
+                                strong C 
+                                .progress(style='height: 25px;')
+                                    .progress-bar.bg-primary(role='progressbar', style='width: 75%', aria-valuenow='75', aria-valuemin='0', aria-valuemax='100') 7.5/10
+                        .col-md-6
+                            .mb-3
+                                strong LaTeX 
+                                .progress(style='height: 25px;')
+                                    .progress-bar.bg-primary(role='progressbar', style='width: 85%', aria-valuenow='85', aria-valuemin='0', aria-valuemax='100') 8.5/10
+                            .mb-3
+                                strong Git/GitHub 
+                                .progress(style='height: 25px;')
+                                    .progress-bar.bg-primary(role='progressbar', style='width: 80%', aria-valuenow='80', aria-valuemin='0', aria-valuemax='100') 8.0/10
+                            .mb-3
+                                strong Linux/Unix 
+                                .progress(style='height: 25px;')
+                                    .progress-bar.bg-primary(role='progressbar', style='width: 75%', aria-valuenow='75', aria-valuemin='0', aria-valuemax='100') 7.5/10
+                            .mb-3
+                                strong JavaScript 
+                                .progress(style='height: 25px;')
+                                    .progress-bar.bg-primary(role='progressbar', style='width: 70%', aria-valuenow='70', aria-valuemin='0', aria-valuemax='100') 7.0/10
+
+                    .subheading.mb-3 Mathematical & Computational Expertise
+                    ul.fa-ul.mb-4
+                        li
+                            span.fa-li
+                                i.fas.fa-calculator
+                            | Numerical Methods for PDEs (Finite Difference, Finite Element, Discontinuous Galerkin)
+                        li
+                            span.fa-li
+                                i.fas.fa-chart-line
+                            | Computational Fluid Dynamics & Gas Dynamics
+                        li
+                            span.fa-li
+                                i.fas.fa-cube
+                            | Scientific Computing & High-Performance Computing
+                        li
+                            span.fa-li
+                                i.fas.fa-brain
+                            | Mathematical Modeling & Analysis
+                        li
+                            span.fa-li
+                                i.fas.fa-code
+                            | Algorithm Design & Implementation
+                        li
+                            span.fa-li
+                                i.fas.fa-database
+                            | Data Structures & System Programming
+
+                    .subheading.mb-3 Libraries & Frameworks
+                    ul.list-inline.dev-icons
+                        li.list-inline-item
+                            i.fab.fa-python
+                        li.list-inline-item.text-primary(style='font-size: 2rem;') Eigen
+                        li.list-inline-item.text-primary(style='font-size: 2rem;') NumPy
+                        li.list-inline-item.text-primary(style='font-size: 2rem;') SciPy
+                        li.list-inline-item.text-primary(style='font-size: 2rem;') Matplotlib
+                        li.list-inline-item.text-primary(style='font-size: 2rem;') CMake
+                        li.list-inline-item
+                            i.fab.fa-git-alt
+
+            hr.m-0
+
+            // Interests
+            section#interests.resume-section
+                .resume-section-content
+                    h2.mb-5 Research Interests & Career Goals
+                    
+                    .subheading.mb-3 Research Areas
+                    p
+                        | My primary research interests lie at the intersection of applied mathematics and computational science. 
+                        | I am particularly passionate about developing and implementing advanced numerical methods for 
+                        | solving partial differential equations, with applications to fluid dynamics and multiphase flows.
+                    
+                    p.mb-4
+                        | I am fascinated by the mathematical elegance of entropy-stable schemes and high-order methods 
+                        | like Discontinuous Galerkin formulations. My work focuses on creating robust, efficient 
+                        | computational tools that can tackle complex physical phenomena while maintaining mathematical rigor.
+
+                    .subheading.mb-3 Career Objectives
+                    p
+                        | Currently seeking a 6-month internship opportunity where I can apply my mathematical and 
+                        | computational skills to real-world problems. I am interested in positions involving:
+                    
+                    ul.fa-ul.mb-4
+                        li
+                            span.fa-li
+                                i.fas.fa-rocket
+                            | Computational fluid dynamics and numerical simulation
+                        li
+                            span.fa-li
+                                i.fas.fa-industry
+                            | Scientific computing in industrial applications
+                        li
+                            span.fa-li
+                                i.fas.fa-atom
+                            | Mathematical modeling of physical systems
+                        li
+                            span.fa-li
+                                i.fas.fa-microchip
+                            | High-performance computing and algorithm optimization
+                        li
+                            span.fa-li
+                                i.fas.fa-graduation-cap
+                            | Research and development in academic or industrial settings
+
+                    .subheading.mb-3 Personal Interests
+                    p.mb-0
+                        | Beyond mathematics and computing, I enjoy exploring the philosophical foundations of mathematics, 
+                        | reading about the history of scientific discoveries, and staying current with advances in 
+                        | computational science and machine learning. I also appreciate the collaborative nature of 
+                        | open-source scientific software development.
+
+        // Bootstrap core JS
+        script(src='https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js')
+
+        // Core theme JS
+        script(src='js/scripts.js')

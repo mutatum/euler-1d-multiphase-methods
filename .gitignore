@@ -5,3 +5,16 @@ external
 /build
 ./build
 build
+
+# Portfolio website build artifacts
+portfolio-website/node_modules/
+portfolio-website/dist/
+portfolio-website/.browserslistrc
+
+# Quarto rendered outputs
+quarto-projects/*.html
+quarto-projects/*_files/
+
+# Temporary files
+*.tmp
+*.log
